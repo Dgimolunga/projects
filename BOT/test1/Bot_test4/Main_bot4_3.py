@@ -3,6 +3,7 @@ from BOT.test1.Bot_test4 import config_for_bot as cfg
 from BOT.test1.Bot_test4 import config_dicts as cfg_d
 import telethon
 import asyncio
+import logging
 
 
 class telega(telethon.TelegramClient):

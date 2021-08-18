@@ -18,7 +18,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy
 from sqlalchemy import Column, Integer, String
-
+import logging
 from sqlalchemy.orm.session import sessionmaker
 
 # from sqlalchemy.ext.declarative import declarative_base

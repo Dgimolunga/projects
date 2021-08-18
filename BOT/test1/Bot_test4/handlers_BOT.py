@@ -7,7 +7,7 @@ import re
 
 from BOT.test1.Bot_test4.bot_database import set_data, get_data, NotCorrect, DataDuplicateExc
 from BOT.test1.Bot_test4.bot_database import command_get_list, command_set_list, arg_other, arg_for_session
-
+import logging
 
 # from BOT.test1.Bot_test4 import test_sqlalchemy
 

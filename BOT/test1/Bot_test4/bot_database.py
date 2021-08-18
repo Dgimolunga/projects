@@ -25,7 +25,7 @@ from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm.session import sessionmaker
 
 import re
-
+import logging
 # from sqlalchemy.ext.declarative import declarative_base
 
 
