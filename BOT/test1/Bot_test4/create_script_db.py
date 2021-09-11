@@ -18,7 +18,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy
 from sqlalchemy import Column, Integer, String
-import logging
+
 from sqlalchemy.orm.session import sessionmaker
 
 # from sqlalchemy.ext.declarative import declarative_base
@@ -26,18 +26,24 @@ engine = create_engine('sqlite:///USERBOT_DB.db', echo=True)
 Base = declarative_base(engine)
 
 
-class UserBot(Base):
-    __tablename__ = 'UserBots'
-    key_userbot = Column(Integer, primary_key=True)
-    telegram_id = Column(Integer)     # а если кто то захочет зарегать
+class User(Base):
+    __tablename__ = 'Users'
+    user_logging = Column(String, primary_key=True)
+    user_password = Column(String)
+    # telegram_id = Column(Integer)  # а если кто то захочет зарегать
     phone = Column(String)
     api_id = Column(Integer)
     api_hash = Column(String)
     session_name = Column(String)
-    state = Column(String)
+    # state = Column(String)
     start_script = Column(String)
-    # parsing_channels =
 
+
+class Tel_User(Base):
+    __tablename__ = 'Tel_Users'
+    key_tel_user = Column(Integer, primary_key=True)
+    telegram_id = Column(Integer)
+    key_user = Column(String)
 
     # def __repr__(self):
     #     return '<User(telegram_id="{}", phone="{}", api_id="{}", api_hash="{}", share_channel_id="{}", session_name="{}", state="{}", start_script="{}"'.format(
@@ -55,14 +61,14 @@ class UserBot(Base):
 class Ticker(Base):
     __tablename__ = 'Tickers'
     key_ticker = Column(Integer, primary_key=True)
-    key_userbot = Column(Integer)
+    key_user = Column(Integer)
     ticker = Column(String)
 
 
 class Tag(Base):
     __tablename__ = 'Tags'
     key_tag = Column(Integer, primary_key=True)
-    key_userbot = Column(Integer)
+    key_user = Column(Integer)
     key_ticker = Column(Integer)
     tag = Column(String)
 
@@ -70,17 +76,15 @@ class Tag(Base):
 class ShareChannel(Base):
     __tablename__ = 'ShareChannels'
     key_sharechannel = Column(Integer, primary_key=True)
-    key_userbot = Column(Integer)
+    key_user = Column(Integer)
     share_channel_id = Column(Integer)
-
 
 
 class ParsChannel(Base):
     __tablename__ = 'ParsChannels'
     key_parschannel = Column(Integer, primary_key=True)
-    key_userbot = Column(Integer)
+    key_user = Column(Integer)
     pars_channel_id = Column(Integer)
-
 
 
 # print(User.__repr__(User))

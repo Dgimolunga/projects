@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import telethon
-from BOT.test1.Bot_test4 import config_for_bot as cfg
-from BOT.test1.Bot_test4.Main_bot4_2 import add_client_to_loop
+import BOT.test1.Bot_test4.config_for_bot as cfg
+from BOT.test1.Bot_test4.data_value import telegram_parse
 import logging
+
 
 @telethon.events.register(telethon.events.NewMessage(chats=[-1001518950788]))
 async def event_handler_ms_from(event):
@@ -11,7 +12,7 @@ async def event_handler_ms_from(event):
         print(event.message.text)
         await client_event.forward_messages(cfg.my_channel_id, event.message)
         if event.message.text == "132":
-            add_client_to_loop()
+            telegram_parse.add_client_to_loop()
             print('client connect!: ')
     raise telethon.events.StopPropagation
 

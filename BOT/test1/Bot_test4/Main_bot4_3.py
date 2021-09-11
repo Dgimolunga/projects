@@ -1,32 +1,35 @@
 # -*- coding: utf-8 -*-
-from BOT.test1.Bot_test4 import config_for_bot as cfg
-from BOT.test1.Bot_test4 import config_dicts as cfg_d
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! конфигурация логов должна быть установлена до импорта всех модулей
+import BOT.test1.Bot_test4.logger as my_logger
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! для избежания не проработки встроееных логеров
+import BOT.test1.Bot_test4.config_for_bot as cfg
+import BOT.test1.Bot_test4.config_dicts as cfg_d
+import BOT.test1.Bot_test4.data_value as data_value
 import telethon
 import asyncio
-import logging
+
+bot_name_set = {'bot_parse', 'bot_admin', 'bot_user'}
+__stop_msg__ = 'Program STOP' + '❌' * 100 + 'Program STOP'
+
+if __name__ == '__main__':
+    logger = my_logger.get_logger(__name__)
 
 
-class telega(telethon.TelegramClient):
-    def __init__(self, session: 'typing.Union[str, Session]', api_id: int, api_hash: str,
-                 loop: asyncio.events.AbstractEventLoop = None):
-        super().__init__(session, api_id, api_hash, loop=loop)
-        for handler in cfg_d.handlers_USERBOT_dict:
-            print(handler)
-            self.add_event_handler(cfg_d.handlers_USERBOT_dict[handler])
+class MyTelethonClient(telethon.TelegramClient):
+    __bot_name_set = bot_name_set
+
+    def __init__(self, api_id: int, api_hash: str, bot_type: str = 'bot_parse',
+                 session: 'typing.Union[str, Session]' = None):
+        if bot_type not in self.__bot_name_set:
+            raise AttributeError(f'type_bot must be in {self.__bot_name_set}')
+        if session is None:
+            session = f'BOT_USER{cfg.id_}' if bot_type == 'bot_user' else bot_type.upper()
+        super().__init__(session, api_id, api_hash)
+        for handler in cfg_d.handlers_BOT_dict[bot_type]:
+            logger.info('Info: %s add to %s ', handler, session)
+            self.add_event_handler(cfg_d.handlers_BOT_dict[bot_type][handler])
 
 
-class telethonBot(telethon.TelegramClient):
-    def __init__(self, session: 'typing.Union[str, Session]', api_id: int, api_hash: str,
-                 loop: asyncio.events.AbstractEventLoop = None):
-        super().__init__(session, api_id, api_hash, loop=loop)
-        for handler in cfg_d.handlers_BOT_dict:
-            print(handler)
-            self.add_event_handler(cfg_d.handlers_BOT_dict[handler])
-
-
-clients = []
-bots = []
-botsMain = None
 # @telethon.events.register(telethon.events.NewMessage)
 # async def event_handler_ms(event):
 #     client_event = event.client
@@ -37,51 +40,86 @@ botsMain = None
 
 # loop = asyncio.new_event_loop()
 # asyncio.set_event_loop(loop)
+class TelegramParse:
+    _logger = logger
+    __bot_name_set = bot_name_set
+    bots = {'bot_admin': {'name': 'bot_admin', 'bot_client': None, 'msg': {'start_msg': '📍📢Info: START BOT ADMIN '
+                                                                                        '👨‍🔧👮🏻‍♂️👨🏼‍⚕️ '}},
+            'bot_parse': {'name': 'bot_parse', 'bot_client': None, 'msg': {'start_msg': '📍📢Info: START BOT PARSE '
+                                                                                        '🕵️🕵️‍♂️🕵️️ '}},
+            'bot_user': {'name': 'bot_user', 'users': [], 'msg': {}},
+            }
 
-async def client_run(loop, client_bot=botsMain, sender_id='Dgimolunga2'):
-    client = telega("NewClient" + str(cfg.id_), cfg.api_id, cfg.api_hash, loop=loop)
-    cfg.id_ += 1
-    await client.connect()
-    if not await client.is_user_authorized():
-        await client.send_code_request("79525362955")
+    def __init__(self, loop):
+        self.loop = loop
+        self._logger.debug('Initing TelegramParse ...')
+
+    # running telegramClient: bot_parse and bot_admin
+    def start(self):
+        self.loop.run_until_complete(self.some_BOT_run('bot_admin', cfg.bot_admin_token))
+        self.loop.run_until_complete(self.some_BOT_run('bot_parse', cfg.bot_token))
+
+    # bot client of same bos
+    async def some_BOT_run(self, bot_type: str, bot_token: str):
+        bot = MyTelethonClient(cfg.api_id, cfg.api_hash, bot_type=bot_type)
+        if bot_type == 'bot_user':
+            pass
+            # self.bots['bot_users'].append(bot)
+        else:
+            self.bots[bot_type]['bot_client'] = bot
+        await bot.start(bot_token=bot_token)
+        self._logger.error(self.bots[bot_type]['msg']['start_msg'])
+        # await bot.run_until_disconnected()
+
+    # funcion for logger
+    def send_bot_message_to(self, msg: str, bot_name='bot_admin', sender=cfg.admin_id):
+        task = self.loop.create_task(self.bots[bot_name]['bot_client'].send_message(sender, msg))
+        if not self.loop.is_running():
+            self.loop.run_until_complete(task)
+
+    async def client_run(self, loop, client_bot=None, sender_id='Dgimolunga2'):
         if client_bot is None:
             client_bot = botsMain
-            await client_bot.start()
-            await client_bot.connect()
-        async with client_bot.conversation(sender_id) as conv:
-            await conv.send_message('Enter password?')
-            password = await conv.get_response(timeout=100)
-            await client.sign_in("79525362955", password)
-            await conv.send_message('Nice to meet you, {}!'.format(password.text))
-    clients.append(client)
-    await client.start()
-    await client.run_until_disconnected()
+        client = telega("Client" + str(cfg.id_), cfg.api_id, cfg.api_hash, loop=loop)
+        cfg.id_ += 1
+        await client.connect()
+        if not await client.is_user_authorized():
+            logger.ERROR('Info: Starting new Client%s', cfg.id_)
+            await client.send_code_request("79525362955")
+            if client_bot is None:
+                client_bot = botsMain
+                await client_bot.start()
+                await client_bot.connect()
+            async with client_bot.conversation(sender_id) as conv:
+                await conv.send_message('Enter password?')
+                password = await conv.get_response(timeout=100)
+                await client.sign_in("79525362955", password)
+                await conv.send_message('Nice to meet you, {}!'.format(password.text))
+            clients.append(client)
+        await client.start()
+        await client.run_until_disconnected()
 
-
-async def BOT_client_run(loop):
-    global botsMain
-    bot = telethonBot('MainBOT', cfg.api_id, cfg.api_hash, loop=loop)
-    bots.append(bot)
-    botsMain = bot
-    await bot.start(bot_token=cfg.bot_token)
-    await bot.run_until_disconnected()
-
-
-def add_client_to_loop(loop, client_bot=botsMain, sender_id=None):
-    loop = asyncio.get_event_loop()
-    loop.create_task(client_run(loop, client_bot, sender_id))
+    def add_client_to_loop(client_bot=None, sender_id=None):
+        if client_bot is None:
+            client_bot = data_value.bots['bot_admin']
+        loop = asyncio.get_event_loop()
+        loop.create_task(client_run(loop, client_bot, sender_id))
 
 
 def main():
+    logger.info('Starting Main_bot4.3.py ...')
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-
-    loop.create_task(BOT_client_run(loop))
-    # loop.run_until_complete(client_run(loop))
+    data_value.telegram_parse = TelegramParse(loop)
+    data_value.telegram_parse.start()
     try:
         loop.run_forever()
-    except KeyboardInterrupt as e:
-        pass
+    except KeyboardInterrupt:
+        logger.error('📍⛔️KeyboardInterrupt!!!', exc_info=True)
+    except Exception:
+        logger.error('📍⛔️ERROR !!!!', exc_info=True)
+    finally:
+        logger.error(__stop_msg__)
 
 
 if __name__ == '__main__':

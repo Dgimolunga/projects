@@ -1,22 +1,5 @@
 # -*- coding: utf-8 -*-
-# import sqlite3
-#
-#
-# db_connect = sqlite3.connect("script_db.db")
-# cursor = db_connect.cursor()
-#
-# list_ = []
-# for i in range(3):
-#     list_.append((i, '79525368325', 234342, 'asdfasf', 'session_id_{}'.format(i), str(False)))
-# cursor.executemany("INSERT INTO users VALUES (?,?,?,?,?,?)", list_)
-# sql_select = """
-# select * from users
-# where id=?
-# """
-# cursor.execute(sql_select, [1])
-# print(cursor.fetchall())
-# input("sdf:? ")
-# db_connect.commit()
+import BOT.test1.Bot_test4.logger as my_logger
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -25,32 +8,49 @@ from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm.session import sessionmaker
 
 import re
-import logging
+
+"""
+tools for ParseBot`s ORM database
+"""
 # from sqlalchemy.ext.declarative import declarative_base
 
+# ____________________________________________________________
+# add my logger
+logger = my_logger.get_logger(__name__)
 
+# ____________________________________________________________
+# for ORM
 engine = create_engine('sqlite:///USERBOT_DB.db', echo=True)
 Base = declarative_base(engine)
 session_db = sessionmaker(bind=engine)()
 
 
-class NotCorrect(Exception):
+# ____________________________________________________________
+# Exception classes
+class NotCorrectExc(Exception):
     pass
 
 
 class DataDuplicateExc(Exception):
     pass
 
-arg_user_db = [
+
+class UserNotFoundExc(Exception):
+    pass
+
+
+# ____________________________________________________________
+# tuple for ParseBotORM columns for classes
+arg_user_db = (
     'telegram_id',
     'phone',
     'api_id',
     'api_hash',
     'share_channel_id',
     'start_script'
-]
-__arg_user_db = [
-    'telegram_id',
+)
+__arg_user_db = (
+    'user_logging',
     'phone',
     'api_id',
     'api_hash',
@@ -58,35 +58,34 @@ __arg_user_db = [
     'session_name',
     'state',
     'start_script'
-]
-arg_for_session = [
+)
+arg_for_session = (
     'phone',
     'api_id',
     'api_hash',
     'share_channel_id'
-]
-
-arg_other = [
+)
+arg_other = (
     "some arg...."
-]
-
-command_set_list = [
+)
+command_set_list = (
     'phone',
     'api_id',
     'api_hash',
     'share_channel_id',
-]
-
-command_get_list = [
+)
+command_get_list = (
     'phone',
     'api_id',
     'api_hash',
     'share_channel_id',
-]
+)
 
 
+# ____________________________________________________________
+# utils functions
 def raise_exc(error):
-    raise NotCorrect(error)
+    raise NotCorrectExc(error)
 
 
 def phone_check(phone):
@@ -124,29 +123,39 @@ check_arg_dict = {
 }
 
 
+# ____________________________________________________________
+# ORM classes
 class User(Base):
-    __tablename__ = 'UserBots'
-    key_userbot = Column(Integer, primary_key=True)
-    telegram_id = Column(Integer)  # а если кто то захочет зарегать
+    __tablename__ = 'Users'
+    user_logging = Column(String, primary_key=True)
+    user_password = Column(String)
+    # telegram_id = Column(Integer)  # а если кто то захочет зарегать
     phone = Column(String)
     api_id = Column(Integer)
     api_hash = Column(String)
     session_name = Column(String)
-    state = Column(String)
+    # state = Column(String)
     start_script = Column(String)
+
+
+class TelegramIdHaveUsers(Base):
+    __tablename__ = 'Tel_Users'
+    key_tel_user = Column(Integer, primary_key=True)
+    telegram_id = Column(Integer)
+    key_user = Column(String)
 
 
 class Ticker(Base):
     __tablename__ = 'Tickers'
     key_ticker = Column(Integer, primary_key=True)
-    key_userbot = Column(Integer)
+    key_user = Column(String)
     ticker = Column(String)
 
 
 class Tag(Base):
     __tablename__ = 'Tags'
     key_tag = Column(Integer, primary_key=True)
-    key_userbot = Column(Integer)
+    key_user = Column(String)
     key_ticker = Column(Integer)
     tag = Column(String)
 
@@ -154,14 +163,14 @@ class Tag(Base):
 class ShareChannel(Base):
     __tablename__ = 'ShareChannels'
     key_sharechannel = Column(Integer, primary_key=True)
-    key_userbot = Column(Integer)
+    key_user = Column(String)
     share_channel_id = Column(Integer)
 
 
 class ParsChannel(Base):
     __tablename__ = 'ParsChannels'
     key_parschannel = Column(Integer, primary_key=True)
-    key_userbot = Column(Integer)
+    key_user = Column(String)
     pars_channel_id = Column(Integer)
 
     # def __repr__(self):
@@ -182,74 +191,101 @@ class ParsChannel(Base):
     #     self.api_hash = api_hash
 
 
-#     self.api_id = api_id
+# ____________________________________________________________
+# functions for management ORM database for ParseBot
+def check_user_in_telegram_id(user_logging, telegram_id):
+    query = session_db.query(TelegramIdHaveUsers).filter_by(key_user=user_logging, telegram_id=telegram_id)
+    return query.first()
 
 
-# phone=None, api_id=None, api_hash=None, session_name=None, state=None, start_script=None
+def add_user_to_telegram_id(user_logging, telegram_id):
+    tel_user = TelegramIdHaveUsers(telegram_id=telegram_id, key_user=user_logging)
+    session_db.add(tel_user)
+    session_db.commit()
 
 
-def get_user(telegram_user_id: int, session_name):
-    query = session_db.query(User).filter_by(telegram_id=str(telegram_user_id), session_name=session_name)
+def get_user(user_logging, telegram_user_id: int, ):
+    if not check_user_in_telegram_id(user_logging, telegram_user_id):
+        raise UserNotFoundExc()
+    query = session_db.query(User).filter_by(user_logging=user_logging)
     user = query.first()
-    if user is None:
-        user = User(telegram_id=telegram_user_id, session_name=session_name)
-        session_db.add(user)
-        session_db.commit()
     return user
 
 
-def get_user_key(telegram_user_id: int, session_name):
-    query = session_db.query(User).filter_by(telegram_id=str(telegram_user_id), session_name=session_name)
+#  util for /create_user command
+def check_user_logging_name(name: str):
+    query = session_db.query(User).filter_by(user_logging=name)
     user = query.first()
     if user is None:
-        raise NotCorrect('У вас нет такой сессии')
-    return user.key_userbot
+        return True
+    else:
+        return False
 
 
-def get_data(telegram_user_id: int, session_name, arg):
+# for /create_user command
+def new_user(user_logging: str, hash_, sender_id):
+    user = User(user_logging=user_logging, user_password=hash_)
+    session_db.add(user)
+    session_db.commit()
+    add_user_to_telegram_id(user_logging, sender_id)
+
+
+# for /get commands
+def get_data(telegram_user_id: int, user_logging, arg):
     if arg not in command_get_list:
-        raise NotCorrect("arg not in command_get_list")
+        raise NotCorrectExc("arg not in command_get_list")
 
-    user = get_user(telegram_user_id, session_name)
+    user = get_user(user_logging, telegram_user_id)
     return getattr(user, arg)
 
 
-def filter_method(key_userbot, table, column, arg, error_msg=''):
-    query = session_db.query(table).filter_by(key_userbot=key_userbot, **{column: arg})
+# for /my_users command
+def get_all_users(telegram_id):
+    users_list = []
+    query = session_db.query(TelegramIdHaveUsers).filter_by(telegram_id=str(telegram_id))
+    for user in query:
+        users_list.append(user.key_user)
+    return users_list
+
+
+#  repeatability check for set_data
+def filter_method(user_logging, table, column, arg, error_msg=''):
+    query = session_db.query(table).filter_by(key_user=user_logging, **{column: arg})
     if query.first() is not None:
         raise DataDuplicateExc(error_msg)
 
 
-def set_data(telegram_user_id: int, session_name, arg, data):
+# for /set or /add commands
+def set_data(telegram_user_id: int, user_logging, arg, data):
+    user = get_user(user_logging, telegram_user_id)
+
     if hasattr(User, arg):
         check_arg_dict[arg](data)
-        user = get_user(telegram_user_id, session_name)
         setattr(user, arg, data)
     elif hasattr(ParsChannel, arg):
-        user_key = get_user_key(telegram_user_id, session_name)
-        filter_method(user_key, ShareChannel, 'share_channel_id', data,
+        filter_method(user_logging, ShareChannel, 'share_channel_id', data,
                       f"Нельзя добавить ParsChannel: {data}, т.к. он добавлен в ShareChannel")
-        filter_method(user_key, ParsChannel, 'pars_channel_id', data,
+        filter_method(user_logging, ParsChannel, 'pars_channel_id', data,
                       f"ParsChannel: {data} уже добавлен в эту сессию")
-        pars_channel = ParsChannel(key_userbot=user_key, pars_channel_id=int(data))
+        pars_channel = ParsChannel(key_user=user_logging, pars_channel_id=int(data))
         session_db.add(pars_channel)
     elif hasattr(ShareChannel, arg):
-        user_key = get_user_key(telegram_user_id, session_name)
         # check_arg_dict[arg](data)                     # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        filter_method(user_key, ShareChannel, 'share_channel_id', data, f"ShareChannel: {data} уже добавлен в эту сессию")
-        filter_method(user_key, ParsChannel, 'pars_channel_id', data, f"Нельзя добавить ShareChannel: {data}, т.к. он добавлен в PostChannel")
-        share_channel = ShareChannel(key_userbot=user_key, share_channel_id=int(data))
+        filter_method(user_logging, ShareChannel, 'share_channel_id', data,
+                      f"ShareChannel: {data} уже добавлен в эту сессию")
+        filter_method(user_logging, ParsChannel, 'pars_channel_id', data,
+                      f"Нельзя добавить ShareChannel: {data}, т.к. он добавлен в PostChannel")
+        share_channel = ShareChannel(key_user=user_logging, share_channel_id=int(data))
         session_db.add(share_channel)
     elif hasattr(Ticker, arg):
-        user_key = get_user_key(telegram_user_id, session_name)
-        filter_method(user_key, Ticker, 'ticker', data,
+        filter_method(user_logging, Ticker, 'ticker', data,
                       f"Ticker: {data} уже добавлен  в эту сессию")
-        ticker = Ticker(key_userbot=user_key, ticker=data)
+        ticker = Ticker(key_user=user_logging, ticker=data)
         session_db.add(ticker)
     elif hasattr(Tag, arg):
         pass
     else:
-        raise NotCorrect
+        raise NotCorrectExc
     # for arg in (kwargs.keys() & __arg_user_db):
     #     setattr(user, arg, kwargs[arg])  # что будет если во время запуска поменять данные
 
