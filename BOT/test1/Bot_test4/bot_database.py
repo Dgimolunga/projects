@@ -190,7 +190,7 @@ class ParsChannel(Base):
     # def set_api_id_api_hash(self, api_id, api_hash):
     #     self.api_hash = api_hash
 
-
+Base.metadata.create_all(engine)
 # ____________________________________________________________
 # functions for management ORM database for ParseBot
 def check_user_in_telegram_id(user_logging, telegram_id):
