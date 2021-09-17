@@ -40,7 +40,16 @@ class MyTelethonClient(telethon.TelegramClient):
 
 # loop = asyncio.new_event_loop()
 # asyncio.set_event_loop(loop)
-class TelegramParse:
+class SingleTonePattern:
+    _instances = {}
+
+    def __new__(cls, *args, **kwargs):
+        if cls in cls._instances:
+            cls._instances[cls] = super(SingleTonePattern, cls).__init__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+class TelegramParse(SingleTonePattern):
     _logger = logger
     __bot_name_set = bot_name_set
     bots = {'bot_admin': {'name': 'bot_admin', 'bot_client': None, 'msg': {'start_msg': '📍📢Info: START BOT ADMIN '
