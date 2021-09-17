@@ -29,25 +29,11 @@ command_dict = {
 def fsm_decor(action: ActionForFSM):
     def callback(fun):
         def call(*args, **kwargs):
-            # if state is ConcreteStatePass:
-            #     return fun(*args, **kwargs)
-            # if parse_bot_users_state.is ConcreteStateEcho:
-            #     return fun(*args, **kwargs)
-            # return state_manager(*args, **kwargs)
             return parse_bot_users_state_fsm.action_manager(action, fun, args, kwargs)
 
         return call
 
     return callback
-
-
-def coroutine_start(fun):
-    def wrapper(*args, **kwargs):
-        cor = fun(*args, **kwargs)
-        cor.send(None)
-        return cor
-
-    return wrapper
 
 
 # _____________________________________________________________________________________________________________________
@@ -208,15 +194,6 @@ class ParseBotUsersStateFSM:
         user_info = self.get_user_info(sender_id)
         return user_info.state.send_action(action, fun, args, kwargs)
 
-    def transition_to(self, state, fun, args, kwargs):
-        # if state is ConcreteStatePass:
-        #     return fun(*args, **kwargs)
-        sender_id = args[0].sender_id
-        user_info = self.get_user_info(sender_id)
-        # if user_info['state'].__class__ == ConcreteStateEcho:
-        #     return fun(*args, **kwargs)
-        user_info['state'].send(state, fun, args, kwargs)
-
     def get_user_info(self, sender_id):
         if self.users_info_for_parse_bot.get(sender_id, None) is None:
             new_user = UserInfo(StateEcho(), sender_id)
@@ -227,11 +204,6 @@ class ParseBotUsersStateFSM:
 
 # ______________________________________________________________________________________________________________________
 # bot`s handlers
-
-# @telethon.events.register(telethon.events.NewMessage(pattern='/start'))
-# async def BOT_handler_start(event):
-#     await event.reply('Howdy, how are you doing?')
-#     raise telethon.events.StopPropagation
 
 
 @telethon.events.register(telethon.events.NewMessage(pattern='/my_users'))
@@ -268,58 +240,6 @@ async def BOT_handler_set_data(event):
     finally:
         raise telethon.events.StopPropagation
 
-
-# @telethon.events.register(telethon.events.NewMessage(pattern='/set_api_hash_and_api_id'))
-# async def BOT_handler_set_api_hash_and_id(event):
-#     api_hash, api_id = event.message.text.split()[1:3]
-#
-#     re_id = re.findall(r'^[0-9]+', api_id)
-#     if not (''.join(re_id) == api_id):
-#         await event.reply('Неверный формат api_id')
-#         raise telethon.events.StopPropagation
-#         return
-#     print(api_hash)
-#     re_hash = re.findall(r'^[a-zA-Z0-9]+', api_hash)
-#     print(re_hash)
-#     if not (''.join(re_hash) == api_hash):
-#         await event.reply('Неверный формат api_hash')
-#         raise telethon.events.StopPropagation
-#         return
-#
-#     set_data(event.sender_id, api_hash=api_hash, api_id=int(api_id))
-#     await event.reply(f"Данные сохранены!{api_hash} and {api_id}")
-#     raise telethon.events.StopPropagation
-
-
-# @telethon.events.register(telethon.events.NewMessage(pattern='/set_phone_number'))
-# async def BOT_handler_set_phone_number(event):
-#     phone_number = event.message.text.split()[1]
-#
-#     re_id = re.findall(r'^[0-9]+', phone_number)
-#     if not (''.join(re_id) == phone_number):
-#         await event.reply('Неверный формат ')
-#         raise telethon.events.StopPropagation
-#         return
-#     set_data(event.sender_id, phone=phone_number)
-#     await event.reply(f"Данные сохранены!{phone_number}")
-#     raise telethon.events.StopPropagation
-
-# @telethon.events.register(telethon.events.NewMessage(pattern='/set_id_share_channel'))
-# async def BOT_handler_set_id_channel(event):
-#     id_share_channel = event.message.text.split()[1]
-#
-#     re_id = re.findall(r'^[0-9]+', id_share_channel)
-#     if not (''.join(re_id) == id_share_channel):
-#         try:
-#             id_share_channel = await event.client.get_peer_id(id_share_channel)
-#         except:
-#             await event.reply('Неверный формат api_id')
-#             raise telethon.events.StopPropagation
-#             return
-#
-#     set_data(event.sender_id, share_channel_id=int(id_share_channel))
-#     await event.reply(f"Данные сохранены!{id_share_channel}")
-#     raise telethon.events.StopPropagation
 
 @telethon.events.register(telethon.events.NewMessage(pattern='/get'))
 async def BOT_handler_get_data(event):
