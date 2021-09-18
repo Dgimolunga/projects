@@ -11,11 +11,11 @@ import re
 from asyncio.exceptions import TimeoutError as AIOTimeoutError
 # ______________________________________________________________________________________________________________________
 # import function of database
-from BOT.test1.Bot_test4.bot_database import get_all_users, set_data, get_data, check_user_logging_name, new_user
+from BOT.test1.Bot_test4.bot_database import get_all_users, set_data, get_data, check_user_logging_name, add_new_user_to_database
 # import exception of database
 from BOT.test1.Bot_test4.bot_database import NotCorrectExc, DataDuplicateExc, UserNotFoundExc
 # import var of database
-from BOT.test1.Bot_test4.bot_database import command_get_list, command_set_list, arg_other, arg_for_session
+from BOT.test1.Bot_test4.bot_database import command_get_list, command_add_list
 
 command_dict = {
     'add_user': '/add_user',
@@ -126,7 +126,7 @@ class ConcreteStateCreateUser(StateConversation):
         salt = cfg.salt
         hash_confirm.update((res + salt).encode('utf_8'))
         if hash_confirm.digest() == self.sub_state_data_cash['password']:
-            new_user(self.sub_state_data_cash['logging_name'], hash_confirm.hexdigest(), args[0].sender_id)
+            add_new_user_to_database(self.sub_state_data_cash['logging_name'], hash_confirm.hexdigest(), args[0].sender_id)
             self.change_state_to(StateEcho())
             return await args[0].reply('User was created')
         else:
@@ -228,13 +228,14 @@ async def BOT_handler_set_data(event):
         set_data(event.sender_id, user_logging, arg, data)
         await event.reply(f"Данные сохранены: session '{user_logging}':{arg}: {data}")
     except NotCorrectExc as e:
-        await event.reply('{}\n'
-                          'Введена неправильная команда.\nExample: "/set_sessionname_*** value"\n*** - one of:\n{} for '
-                          'start script;\n{} for other set'.format(e, arg_for_session, arg_other))
+        await event.reply(f'{e}\n'
+                          'Введена неправильная команда.\nExample: "/set_username_*** value"\n*** - one of:\n for '
+                          'start script;\n{} for other set')
     except UserNotFoundExc as e:
         await event.reply(f'Пользователь не найден\n'
                           f'Чтобы создать ползователя используйте команду {command_dict["add_user"]}')
     except:
+        logger.error('Что-то пошло не так', exc_info=True)
         await event.reply('Что-то пошло не так')
         raise
     finally:
@@ -250,16 +251,17 @@ async def BOT_handler_get_data(event):
         _, user_logging, arg = getlist_
 
         value_arg = get_data(event.sender_id, user_logging, arg)
-        await event.reply("session '{}':{}:: {}".format(user_logging, arg, value_arg))
+        await event.reply(f"username '{user_logging}': {arg}:: {value_arg}")
     except NotCorrectExc as e:
-        await event.reply('{}\nВведена неправильная команда.\n'
-                          'Example: "/get_sessionname_***"\n*** - one of:\n {}'.format(e, command_get_list))
+        await event.reply(f'{e}\nВведена неправильная команда.\n'
+                          f'Example: "/get_username_***"\n*** - one of: {command_get_list}')
 
     except UserNotFoundExc as e:
         await event.reply(f'Пользователь не найден\n'
                           f'Чтобы создать ползователя используйте команду {command_dict["add_user"]}')
 
     except:
+        logger.error('Что-то пошло не так', exc_info=True)
         await event.reply('Что-то пошло не так')
         raise
     finally:
@@ -280,12 +282,11 @@ async def BOT_handler_add_data(event):
 
         for i in data:
             set_data(event.sender_id, user_logging, arg, i)
-        await event.reply(f"Данные сохранены: session '{user_logging}':{arg}: {data}")
+        await event.reply(f"Данные сохранены: username '{user_logging}':{arg}: {data}")
 
     except NotCorrectExc as e:
-        await event.reply('{}\nВведена неправильная команда.\n'
-                          'Example: "/add_sessionname_*** value"\n*** - one of:\n{}'.format(e, arg_for_session,
-                                                                                            arg_other))
+        await event.reply(f'{e}\nВведена неправильная команда.\n'
+                          f'Example: "/add_username_*** value"\n*** - one of:\n{command_add_list}')
     except DataDuplicateExc as e:
         await event.reply(f'{e}')
 
@@ -294,6 +295,7 @@ async def BOT_handler_add_data(event):
                           f'Чтобы создать ползователя используйте команду {command_dict["add_user"]}')
 
     except:
+        logger.error('Что-то пошло не так', exc_info=True)
         await event.reply('Что-то пошло не так')
         raise
     finally:

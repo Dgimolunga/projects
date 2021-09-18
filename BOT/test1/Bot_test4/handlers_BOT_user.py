@@ -1,10 +1,17 @@
 # -*- coding: utf-8 -*-
+import BOT.test1.Bot_test4.logger as my_logger
 import telethon
 import BOT.test1.Bot_test4.config_for_bot as cfg
 from BOT.test1.Bot_test4.data_value import telegram_parse
-import logging
+
+""" Handlers and method for User_bot"""
+# ____________________________________________________________
+# add my logger
+logger = my_logger.get_logger(__name__)
 
 
+# ____________________________________________________________
+# handlers for telegram client
 @telethon.events.register(telethon.events.NewMessage(chats=[-1001518950788]))
 async def event_handler_ms_from(event):
     client_event = event.client
